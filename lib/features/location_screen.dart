@@ -114,7 +114,6 @@ class _LocationScreenState extends State<LocationScreen> {
       }
     } else {
       final result = await requestLocationPermission();
-
       if (result) {
         getCurrentLocation();
       } else {
@@ -146,10 +145,8 @@ class _LocationScreenState extends State<LocationScreen> {
 
     if (isGranted) {
       final isServiceEnable = await checkGPSServiceEnable();
-
       if (isServiceEnable) {
         Position position = await Geolocator.getCurrentPosition();
-
         setState(() {
           currentPosition = position;
         });
@@ -186,7 +183,6 @@ class _LocationScreenState extends State<LocationScreen> {
             onPressed: () {
               setState(() {
                 isTracking = !isTracking;
-
                 if (isTracking) {
                   polylineCoordinates.clear();
                   polyLines.clear();

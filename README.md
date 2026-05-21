@@ -1,17 +1,26 @@
-# location_tracker
+# Location_tracker
 
-A new Flutter project.
+## An assignment on -Google Maps and Geolocator
 
-## Getting Started
+A Flutter application that tracks the user’s live location using Google Maps and Geolocator.
+The app automatically animates the camera, updates the user’s location every 10 seconds, draws polylines between locations, and displays marker information with latitude and longitude.
 
-This project is a starting point for a Flutter application.
+## Question:
+### 1. Automatic Map Animation:
+- Display a Google Map view that smoothly animates to the user's current location.
 
-A few resources to get you started if this is your first Flutter project:
+### 2. Real-Time Location Updates:
+- Fetch the user's current location every 10 seconds.
+- Update the marker's position on the map to reflect the latest location.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+### 3. Polyline Tracking:
+- Draw a polyline on the map connecting the previous and current locations.
+- Keep updating the polyline as the user's location changes.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### 4. Marker Information Window:
+- Allow users to tap the marker to open an info window.
+- Display an info window with "My current location" as the title and the user's latitude and longitude as the snippet.
+
+Sample Screenshots:
+
+![WhatsApp Image 2026-05-21 at 11.39.41 PM (1).jpeg](../../../../Downloads/WhatsApp%20Image%202026-05-21%20at%2011.39.41%20PM%20%281%29.jpeg)

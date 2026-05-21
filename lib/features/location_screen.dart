@@ -11,14 +11,20 @@ class LocationScreen extends StatefulWidget {
 
 class _LocationScreenState extends State<LocationScreen> {
   Position? currentPosition;
+
   final LatLng _initialPosition = const LatLng(23.823192, 90.352723);
+
   late GoogleMapController googleMapController;
+
   Marker? userMarker;
 
   final List<LatLng> polylineCoordinates = [];
+
   final Set<Polyline> polyLines = {};
+
   BitmapDescriptor? _bikeIcon;
 
+  bool isTracking = false;
 
   Future<void> _loadBikeIcon() async {
     _bikeIcon = await BitmapDescriptor.asset(
@@ -40,59 +46,75 @@ class _LocationScreenState extends State<LocationScreen> {
 
   Future<void> listenCurrentLocation() async {
     final isGranted = await isLocationPermissionGranted();
+
     if (isGranted) {
       final isServiceEnable = await checkGPSServiceEnable();
+
       if (isServiceEnable) {
         Geolocator.getPositionStream(
           locationSettings: const LocationSettings(
             accuracy: LocationAccuracy.bestForNavigation,
           ),
         ).listen((position) {
-          LatLng currentLatLng = LatLng(position.latitude, position.longitude);
+          LatLng currentLatLng = LatLng(
+            position.latitude,
+            position.longitude,
+          );
 
           setState(() {
             currentPosition = position;
-            print(currentPosition);
 
-            // Add the new location to polyline coordinates if it has changed
-            if (polylineCoordinates.isEmpty ||
-                polylineCoordinates.last != currentLatLng) {
-              polylineCoordinates.add(currentLatLng);
+            if (isTracking) {
+              if (polylineCoordinates.isEmpty ||
+                  polylineCoordinates.last != currentLatLng) {
+                polylineCoordinates.add(currentLatLng);
+              }
+
+              polyLines.clear();
+              polyLines.add(
+                Polyline(
+                  polylineId: const PolylineId('tracking-polyline'),
+                  color: Colors.blue,
+                  width: 6,
+                  points: polylineCoordinates,
+                  endCap: Cap.roundCap,
+                  startCap: Cap.roundCap,
+                  jointType: JointType.round
+                ),
+              );
             }
 
-            // Update the polyline
-            polyLines.clear();
-            polyLines.add(
-              Polyline(
-                polylineId: const PolylineId('tracking-polyline'),
-                color: Colors.blue,
-                width: 6,
-                points: polylineCoordinates,
-              ),
-            );
-
-            // Update the user marker
             userMarker = Marker(
               markerId: const MarkerId('user-marker'),
               position: currentLatLng,
               infoWindow: InfoWindow(
                 title: 'My Current Location',
                 snippet:
-                    'Lat: ${currentLatLng.latitude}, Lng: ${currentLatLng.longitude}',
+                'Lat: ${currentLatLng.latitude}, Lng: ${currentLatLng.longitude}',
               ),
               icon:
-                  _bikeIcon ??
+              _bikeIcon ??
                   BitmapDescriptor.defaultMarkerWithHue(
                     BitmapDescriptor.hueBlue,
                   ),
             );
           });
+
+          googleMapController.animateCamera(
+            CameraUpdate.newCameraPosition(
+              CameraPosition(
+                target: currentLatLng,
+                zoom: 16,
+              ),
+            ),
+          );
         });
       } else {
         await Geolocator.openLocationSettings();
       }
     } else {
       final result = await requestLocationPermission();
+
       if (result) {
         getCurrentLocation();
       } else {
@@ -103,12 +125,14 @@ class _LocationScreenState extends State<LocationScreen> {
 
   Future<bool> requestLocationPermission() async {
     LocationPermission permission = await Geolocator.requestPermission();
+
     return permission == LocationPermission.always ||
         permission == LocationPermission.whileInUse;
   }
 
   Future<bool> isLocationPermissionGranted() async {
     LocationPermission permission = await Geolocator.checkPermission();
+
     return permission == LocationPermission.always ||
         permission == LocationPermission.whileInUse;
   }
@@ -119,10 +143,13 @@ class _LocationScreenState extends State<LocationScreen> {
 
   Future<void> getCurrentLocation() async {
     final isGranted = await isLocationPermissionGranted();
+
     if (isGranted) {
       final isServiceEnable = await checkGPSServiceEnable();
+
       if (isServiceEnable) {
         Position position = await Geolocator.getCurrentPosition();
+
         setState(() {
           currentPosition = position;
         });
@@ -131,6 +158,7 @@ class _LocationScreenState extends State<LocationScreen> {
       }
     } else {
       final result = await requestLocationPermission();
+
       if (result) {
         getCurrentLocation();
       } else {
@@ -142,41 +170,73 @@ class _LocationScreenState extends State<LocationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Google Map GeoLocator')),
-      floatingActionButtonLocation:
-          FloatingActionButtonLocation.miniCenterFloat,
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          if (currentPosition != null) {
-            googleMapController.animateCamera(
-              CameraUpdate.newCameraPosition(
-                CameraPosition(
-                  zoom: 16,
-                  target: LatLng(
-                    currentPosition!.latitude,
-                    currentPosition!.longitude,
-                  ),
-                ),
-              ),
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Current location is not available yet.'),
-              ),
-            );
-          }
-        },
-        backgroundColor: Colors.green,
-        child: const Icon(Icons.my_location, color: Colors.white),
+      appBar: AppBar(
+        title: const Text('Google Map Tracking'),
       ),
+      floatingActionButtonLocation:
+      FloatingActionButtonLocation.endFloat,
+      floatingActionButton: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          FloatingActionButton(
+            heroTag: 'tracking-btn',
+            backgroundColor:
+            isTracking ? Colors.red : Colors.blue,
+            onPressed: () {
+              setState(() {
+                isTracking = !isTracking;
 
+                if (isTracking) {
+                  polylineCoordinates.clear();
+                  polyLines.clear();
+                }
+              });
+            },
+            child: Icon(
+              isTracking ? Icons.stop : Icons.play_arrow,
+              color: Colors.white,
+            ),
+          ),
+          FloatingActionButton(
+            heroTag: 'location-btn',
+            backgroundColor: Colors.green,
+            onPressed: () {
+              if (currentPosition != null) {
+                googleMapController.animateCamera(
+                  CameraUpdate.newCameraPosition(
+                    CameraPosition(
+                      zoom: 18,
+                      target: LatLng(
+                        currentPosition!.latitude,
+                        currentPosition!.longitude,
+                      ),
+                    ),
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Current location not available yet',
+                    ),
+                  ),
+                );
+              }
+            },
+            child: const Icon(
+              Icons.my_location,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: GoogleMap(
           onMapCreated: (controller) {
             googleMapController = controller;
           },
-          mapType: MapType.satellite,
+          mapType: MapType.normal,
           initialCameraPosition: CameraPosition(
             zoom: 16,
             target: _initialPosition,
@@ -184,25 +244,21 @@ class _LocationScreenState extends State<LocationScreen> {
           markers: {
             if (userMarker != null) userMarker!,
             Marker(
-              markerId: MarkerId('home'),
+              markerId: const MarkerId('home'),
               position: _initialPosition,
               infoWindow: InfoWindow(
-                title: "My Home",
+                title: 'My Home',
                 snippet:
-                    "Lat: ${_initialPosition.latitude}, Lng: ${_initialPosition.longitude}",
+                'Lat: ${_initialPosition.latitude}, '
+                    'Lng: ${_initialPosition.longitude}',
               ),
             ),
           },
-          circles: <Circle>{
-            Circle(
-              circleId: const CircleId('circle-on-home'),
-              strokeWidth: 3,
-              radius: 100,
-              strokeColor: Colors.green,
-              center: _initialPosition,
-            ),
-          },
           polylines: polyLines,
+          myLocationEnabled: true,
+          myLocationButtonEnabled: false,
+          compassEnabled: true,
+          trafficEnabled: true,
         ),
       ),
     );
